@@ -1,5 +1,6 @@
-SELECT step_name, keyword_name
+SELECT step_id, keyword_id
   FROM step AS s
        CROSS JOIN keyword AS k
- ORDER BY keyword_name;
+ WHERE REGEXP_INSTR(s.step_name, CONCAT('\\b', k.keyword_name, '\\b'))
+ ORDER BY keyword_id;
 

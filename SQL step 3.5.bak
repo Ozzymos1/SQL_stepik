@@ -1,14 +1,7 @@
-SELECT IF (LENGTH(CONCAT(m.module_id, ' ', m.module_name)) <= 19, 
-           CONCAT(m.module_id, ' ', m.module_name),
-           CONCAT(LEFT(CONCAT(m.module_id, ' ', m.module_name),16), '...')
-		   ) AS Модуль,
-       IF (LENGTH(CONCAT(m.module_id, '.', l.lesson_position, ' ', l.lesson_name,)) <= 19,
-	       CONCAT(m.module_id, '.', l.lesson_position, ' ', l.lesson_name,),
-		   CONCAT(LEFT(CONCAT(m.module_id, '.', l.lesson_position, ' ', l.lesson_name,), 16), '...')
-		   ) AS Урок,
-       CONCAT(m.module_id, '.', l.lesson_position, '.', s.step_position,' ', s.step_name) AS Шаг
-  FROM module AS m
-       JOIN lesson AS l ON m.module_id = l.module_id
-       JOIN step AS s ON l.lesson_id = s.lesson_id
- ORDER BY Шаг;
+SELECT keyword_name AS k_n, step_name AS s_n
+  FROM step AS s
+       CROSS JOIN keyword AS k
+ WHERE s_n REGEXP_INSTR(s_n, CONCAT('\\b', k_n, '\\b'))
+ ORDER BY keyword_name
+ LIMIT 10;
 
