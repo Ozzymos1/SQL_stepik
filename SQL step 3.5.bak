@@ -1,7 +1,6 @@
-SELECT keyword_name AS k_n, step_name AS s_n
+SELECT step_id, keyword_id
   FROM step AS s
        CROSS JOIN keyword AS k
- WHERE s_n REGEXP_INSTR(s_n, CONCAT('\\b', k_n, '\\b'))
- ORDER BY keyword_name
- LIMIT 10;
+ WHERE REGEXP_INSTR(s.step_name, CONCAT('\\b', k.keyword_name, '\\b'))
+ ORDER BY keyword_id;
 

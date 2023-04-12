@@ -1,6 +1,9 @@
-SELECT step_id, keyword_id
-  FROM step AS s
-       CROSS JOIN keyword AS k
- WHERE REGEXP_INSTR(s.step_name, CONCAT('\\b', k.keyword_name, '\\b'))
- ORDER BY keyword_id;
+INSERT INTO step_keyword (step_id, keyword_id)
+			SELECT s.step_id, k.keyword_id
+			  FROM keyword AS k
+				   CROSS JOIN step AS s
+			 WHERE REGEXP_INSTR(s.step_name, CONCAT('\\b', k.keyword_name, '\\b'));
+
+SELECT *
+  FROM step_keyword;
 
