@@ -10,5 +10,6 @@ SELECT IF (LENGTH(CONCAT(m.module_id, ' ', m.module_name)) <= 19,
   FROM module AS m
        JOIN lesson AS l ON m.module_id = l.module_id
        JOIN step AS s ON l.lesson_id = s.lesson_id
- ORDER BY Шаг;
+ ORDER BY Шаг
+ LIMIT 10;
 
