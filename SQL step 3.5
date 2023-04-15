@@ -1,13 +1,33 @@
- SELECT CONCAT (l.module_id, '.',
-				l.lesson_position, '.',
-				LPAD(step_position, 2, '0'), ' ',
-				s.step_name) AS Шаг   
-   FROM step_keyword AS sk
-		JOIN step AS s USING (step_id)
-		JOIN lesson AS l USING (lesson_id)
-		JOIN module AS m USING (module_id)
-		JOIN keyword AS k USING (keyword_id)
-  WHERE keyword_name='MAX' OR 'AVG'
-  ORDER BY Шаг;
-
-
+ SELECT Группа, 
+		CASE Группа
+			WHEN "I" THEN "от 0 до 10"
+			WHEN "II" THEN "от 11 до 15"
+		    WHEN "III" THEN "от 16 до 27"
+			ELSE "больше 27"
+		END AS Интервал,
+		COUNT(student_name) AS Количество
+   FROM	
+		(
+		SELECT student_name, rate, 
+			CASE
+				WHEN rate <= 10 THEN "I"
+				WHEN rate <= 15 THEN "II"
+				WHEN rate <= 27 THEN "III"
+				ELSE "IV"
+			END AS Группа
+		FROM      
+			(
+			 SELECT student_name, COUNT(*) as rate
+			 FROM 
+				 (
+				  SELECT student_name, step_id
+				  FROM 
+					  student 
+					  INNER JOIN step_student USING(student_id)
+				  WHERE result = "correct"
+				  GROUP BY student_name, step_id
+				 ) query_in
+			 GROUP BY student_name 
+			 ORDER BY 2
+			) query_in_1
+		) query_in_2
