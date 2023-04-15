@@ -1,33 +1,30 @@
- SELECT Группа, 
-		CASE Группа
-			WHEN "I" THEN "от 0 до 10"
-			WHEN "II" THEN "от 11 до 15"
-		    WHEN "III" THEN "от 16 до 27"
-			ELSE "больше 27"
-		END AS Интервал,
-		COUNT(student_name) AS Количество
-   FROM	
-		(
-		SELECT student_name, rate, 
-			CASE
-				WHEN rate <= 10 THEN "I"
-				WHEN rate <= 15 THEN "II"
-				WHEN rate <= 27 THEN "III"
-				ELSE "IV"
-			END AS Группа
-		FROM      
-			(
-			 SELECT student_name, COUNT(*) as rate
-			 FROM 
-				 (
-				  SELECT student_name, step_id
-				  FROM 
-					  student 
-					  INNER JOIN step_student USING(student_id)
-				  WHERE result = "correct"
-				  GROUP BY student_name, step_id
-				 ) query_in
-			 GROUP BY student_name 
-			 ORDER BY 2
-			) query_in_1
-		) query_in_2
+   WITH get_count_correct (st_n_c, count_correct) 
+		AS (
+			SELECT step_name, count(*)
+			FROM 
+				step 
+				INNER JOIN step_student USING (step_id)
+			WHERE result = "correct"
+			GROUP BY step_name
+		   ),
+		  get_count_wrong (st_n_w, count_wrong) 
+		  AS (
+			SELECT step_name, count(*)
+			FROM 
+				step 
+				INNER JOIN step_student USING (step_id)
+			WHERE result = "wrong"
+			GROUP BY step_name
+		   )  
+ SELECT st_n_c AS Шаг,
+		COALESCE (ROUND(count_correct / (count_correct + count_wrong) * 100), 100) AS Успешность
+   FROM  
+		get_count_correct 
+		LEFT JOIN get_count_wrong ON st_n_c = st_n_w
+  UNION
+ SELECT st_n_w AS Шаг,
+		COALESCE (ROUND(count_correct / (count_correct + count_wrong) * 100), 0) AS Успешность
+   FROM  
+		get_count_correct 
+		RIGHT JOIN get_count_wrong ON st_n_c = st_n_w
+  ORDER BY 2, 1;
