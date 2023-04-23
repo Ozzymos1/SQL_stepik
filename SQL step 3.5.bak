@@ -1,69 +1,66 @@
-WITH get_avr_time(step_id, AVG_time)
-     AS (
-         SELECT step_id,
-                ROUND(AVG(submission_time - attempt_time), 2) AS AVG_time               
-		   FROM student
-				JOIN step_student USING(student_id)
-		  WHERE student_name = 'student_59'
-                AND (submission_time - attempt_time) < 3601
-          GROUP BY step_id
-		  ORDER BY step_id
-         ),
-      get_step_time(Студент, Шаг, Результат, Время_отправки, Time_solv)
-      AS (
-         SELECT student_name AS Студент, 
-				CONCAT(module_id, '.', lesson_position, '.', step_position) AS Шаг,
-                result AS Результат,
-                FROM_UNIXTIME(submission_time) AS Время_отправки,
-                IF((submission_time - attempt_time) < 3601 , 
-                   (submission_time - attempt_time), 
-                   AVG_time) AS Time_solv
-		   FROM student
-				JOIN step_student USING(student_id)
-				JOIN step USING(step_id)
-				JOIN lesson USING(lesson_id)
-                JOIN get_avr_time USING(step_id)
-		  WHERE student_name = 'student_59'
-		  ORDER BY step_id
-          )
-SELECT *
-  FROM get_step_time;
-
-
-   WITH get_time_lesson(Студент, Урок, Макс_время_отправки) 
-	    AS 
+WITH list_group_1 (Группа, Студент, Количество_шагов)
+     AS
 		(
-		 SELECT student_name AS Студент, 
-				CONCAT(module_id, '.', lesson_position) AS Урок,
-				FROM_UNIXTIME(MAX(submission_time)) AS Макс_время_отправки
-		   FROM student
-				JOIN step_student USING(student_id)
-				JOIN step USING(step_id)
-				JOIN lesson USING(lesson_id)
-		  WHERE result = 'correct'
-		  GROUP BY Студент, Урок
-		  ORDER BY Студент, Макс_время_отправки
+		SELECT 'I' AS Группа, 
+		       student_name AS Студент, 
+			   count(step_id) AS Количество_шагов
+		  FROM (
+				SELECT student_name, 
+					   step_id, 
+					   IF(result = 'correct' 
+						  AND submission_time < MAX(submission_time) OVER (PARTITION BY student_name, step_id),
+						  IF(LEAD(result) OVER (PARTITION BY student_id, step_id ORDER BY submission_time) = 'wrong',
+							 1, 0),
+						 0) AS experimenter
+				  FROM step_student 
+					   JOIN student USING(student_id)
+				 ) qr1
+		 WHERE experimenter = 1
+		 GROUP BY 1, 2
+		 ORDER BY 1, 3 DESC, 2
 		),
-        get_student_three_lesson(Студент)
-	    AS
+	 list_group_2 (Группа, Студент, Количество_шагов)
+	 AS
 		(
-		 SELECT Студент
-		   FROM get_time_lesson
-		  GROUP BY Студент
-		 HAVING COUNT(Урок) > 2
-		  ORDER BY Студент
+		 SELECT 'II' AS Группа, 
+		 	    student_name AS Студент,
+			    count(step_id) AS Количество_шагов
+		   FROM (
+				SELECT student_name,
+					   step_id
+				  FROM step_student
+					   JOIN student USING(student_id)
+				 GROUP BY student_id, step_id
+				HAVING COUNT(case result when 'correct' then 1 else null end) > 1
+				 ORDER BY student_id
+				) qr2
+		  GROUP BY 1, 2
+		  ORDER BY 1, 3 DESC, 2
+		),
+	 list_group_3 (Группа, Студент, Количество_шагов)
+		(
+		SELECT 'III' AS Группа,
+			   student_name AS Студент,
+			   step_id
+		  FROM step_student
+			   JOIN student USING(student_id)
+		 GROUP BY student_id, step_id
+		HAVING COUNT(case result when 'correct' then 1 else null end) = 0
+		 ORDER BY student_id
 		)
- SELECT get_student_three_lesson.Студент,
-		Урок,
-		Макс_время_отправки,
-        IFNULL(CEILING(TIMESTAMPDIFF(
-                          SECOND,
-                          LAG(Макс_время_отправки)
-                          OVER (PARTITION BY Студент ORDER BY Макс_время_отправки),
-                          Макс_время_отправки
-                          )/86400
-                        ),'-'
-                ) AS Интервал
-   FROM get_student_three_lesson
-		JOIN get_time_lesson USING(Студент)
-  ORDER BY Студент, Макс_время_отправки;
+
+
+SELECT "I" AS Группа, student_name AS Студент, count(step_id) AS Количество_шагов
+  FROM (
+        SELECT student_name, 
+               step_id, 
+               IF(result = 'correct' 
+                  AND submission_time < MAX(submission_time) OVER (PARTITION BY student_name, step_id),
+                  IF(LEAD(result) OVER (PARTITION BY student_id, step_id ORDER BY submission_time) = 'wrong',
+                     1, 0),
+                 0) AS experimenter
+          FROM step_student 
+               JOIN student USING(student_id)
+         ) qr1
+ WHERE experimenter = 1
+ GROUP BY 1, 2
